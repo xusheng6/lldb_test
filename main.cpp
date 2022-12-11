@@ -65,12 +65,12 @@ void EventListener(SBDebugger& m_debugger)
     while (!done)
     {
         SBEvent event;
-        cout << "wait for event" << endl;
+//        cout << "wait for event" << endl;
         if (!listener.WaitForEvent(1, event))
             continue;
 
         uint32_t event_type = event.GetType();
-        cout << "got an event, type " << event_type << endl;
+//        cout << "got an event, type " << event_type << endl;
         if (lldb::SBProcess::EventIsProcessEvent(event))
         {
             SBProcess process = lldb::SBProcess::GetProcessFromEvent(event);
@@ -157,18 +157,20 @@ bool ExecuteWithArgs(SBDebugger& m_debugger, const std::string& path)
 }
 
 
-void StepInto(SBDebugger& m_debugger)
+bool StepInto(SBDebugger& m_debugger)
 {
     auto m_process = m_debugger.GetTargetAtIndex(0).GetProcess();
     if (m_process.GetState() != lldb::eStateStopped)
     {
         cout << "step into failed" << endl;
+        return false;
     }
 
     SBThread thread = m_process.GetSelectedThread();
     if (!thread.IsValid())
     {
         cout << "step into failed, invalid thread" << endl;
+        return false;
     }
 
     SBError error;
@@ -176,8 +178,10 @@ void StepInto(SBDebugger& m_debugger)
     if (!error.Success())
     {
         cout << "step into failed " << string(error.GetCString() ? error.GetCString() : "") << endl;
+        return false;
     }
     cout << "step into requested" << endl;
+    return true;
 }
 
 
@@ -197,7 +201,11 @@ int main(int argc, char** argv)
 
     ExecuteWithArgs(m_debugger, executable);
 
-    StepInto(m_debugger);
+    for (auto i = 0; i < 10; i++)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        StepInto(m_debugger);
+    }
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
     return 0;
